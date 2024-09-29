@@ -1,4 +1,7 @@
 import os
+import networkx as nx
+import matplotlib.pyplot as plt
+import numpy as np
 
 # Función para limpiar la consola
 def limpiar_consola():
@@ -121,26 +124,105 @@ def es_asimetrica(conjunto, relaciones):
     return True
 
 # Función para verificar si es una relación de equivalencia
-def es_equivalencia(reflexiva, simetrica, transitiva):
+def es_equivalencia(reflexiva, simetrica, transitiva, conjunto, relaciones):
     contenido = []
     if reflexiva and simetrica and transitiva:
         contenido.append("La relación es de equivalencia.")
         imprimir_contenedor("Relación de Equivalencia", contenido)
+        generar_grafo(relaciones)
+        clases_equivalencia(conjunto, relaciones)
         return True
     contenido.append("La relación NO es de equivalencia.")
     imprimir_contenedor("Relación de Equivalencia", contenido)
     return False
 
 # Función para verificar si es una relación de orden parcial
-def es_orden_parcial(reflexiva, antisimetrica, transitiva):
+def es_orden_parcial(reflexiva, antisimetrica, transitiva, conjunto, relaciones):
     contenido = []
     if reflexiva and antisimetrica and transitiva:
         contenido.append("La relación es de orden parcial.")
         imprimir_contenedor("Relación de Orden Parcial", contenido)
+        es_reticula(conjunto, relaciones)
+        generar_diagrama_hasse(conjunto, relaciones)
         return True
     contenido.append("La relación NO es de orden parcial.")
     imprimir_contenedor("Relación de Orden Parcial", contenido)
     return False
+
+# Función para generar la matriz de adyacencia
+def generar_matriz(conjunto, relaciones):
+    n = len(conjunto)
+    elementos = sorted(list(conjunto))
+    matriz = np.zeros((n, n), dtype=int)
+
+    # Llenar la matriz
+    for (a, b) in relaciones:
+        i = elementos.index(a)
+        j = elementos.index(b)
+        matriz[i][j] = 1
+
+    # Mostrar la matriz
+    print("Matriz de Adyacencia:")
+    print(matriz)
+
+# Función para generar el grafo de la relación
+def generar_grafo(relaciones):
+    G = nx.DiGraph()
+    G.add_edges_from(relaciones)
+
+    pos = nx.spring_layout(G)
+    nx.draw(G, pos, with_labels=True, node_size=700, node_color='lightgreen', arrows=True)
+    plt.title("Grafo de la Relación")
+    plt.show()
+
+# Función para obtener clases de equivalencia
+def clases_equivalencia(conjunto, relaciones):
+    equivalencias = {}
+    for a in conjunto:
+        clase = {b for (x, b) in relaciones if x == a}
+        if a not in equivalencias:
+            equivalencias[a] = clase
+
+    # Agrupar por clases de equivalencia
+    clases = []
+    visitados = set()
+    for elem in equivalencias:
+        if elem not in visitados:
+            clase = equivalencias[elem]
+            clases.append(clase)
+            visitados.update(clase)
+
+    # Mostrar clases de equivalencia
+    contenido = []
+    for idx, clase in enumerate(clases, 1):
+        contenido.append(f"Clase de equivalencia {idx}: {clase}")
+    imprimir_contenedor("Clases de Equivalencia", contenido)
+
+# Función para verificar si una relación es retícula
+def es_reticula(conjunto, relaciones):
+    # Aquí implementas la lógica para verificar si es retícula.
+    contenido = ["Verificando si es una retícula (lattice)..."]
+    imprimir_contenedor("Verificación de Retícula", contenido)
+    return True
+
+# Función para generar el diagrama de Hasse
+def generar_diagrama_hasse(conjunto, relaciones):
+    G = nx.DiGraph()
+    G.add_edges_from(relaciones)
+    
+    # Eliminar ciclos y dejar solo las conexiones mínimas
+    hasse_relaciones = []
+    for (a, b) in relaciones:
+        if not any((a, c) in relaciones and (c, b) in relaciones for c in conjunto if c != a and c != b):
+            hasse_relaciones.append((a, b))
+    
+    G = nx.DiGraph()
+    G.add_edges_from(hasse_relaciones)
+
+    pos = nx.spring_layout(G)
+    nx.draw(G, pos, with_labels=True, node_size=700, node_color='lightblue', arrows=False)
+    plt.title("Diagrama de Hasse")
+    plt.show()
 
 # Limpiar la consola antes de pedir datos
 limpiar_consola()
@@ -171,7 +253,13 @@ es_relacion_antisimetrica = es_antisimetrica(conjunto_A, relaciones)
 es_relacion_transitiva = es_transitiva(conjunto_A, relaciones)
 
 # Verificar si es relación de equivalencia
-es_equivalencia(es_relacion_reflexiva, es_relacion_simetrica, es_relacion_transitiva)
+es_equivalencia(es_relacion_reflexiva, es_relacion_simetrica, es_relacion_transitiva, conjunto_A, relaciones)
 
 # Verificar si es relación de orden parcial
-es_orden_parcial(es_relacion_reflexiva, es_relacion_antisimetrica, es_relacion_transitiva)
+es_orden_parcial(es_relacion_reflexiva, es_relacion_antisimetrica, es_relacion_transitiva, conjunto_A, relaciones)
+
+# Generar la matriz de adyacencia
+generar_matriz(conjunto_A, relaciones)
+
+
+#falta generar particiones, reticula y clases
