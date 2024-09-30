@@ -175,28 +175,47 @@ def generar_grafo(relaciones):
     plt.title("Grafo de la Relación")
     plt.show()
 
-# Función para obtener clases de equivalencia
+# Función para obtener clases de equivalencia utilizando la técnica de unión y búsqueda
 def clases_equivalencia(conjunto, relaciones):
-    equivalencias = {}
-    for a in conjunto:
-        clase = {b for (x, b) in relaciones if x == a}
-        if a not in equivalencias:
-            equivalencias[a] = clase
+    # Inicializar un diccionario para mantener el representante de cada clase
+    representantes = {x: x for x in conjunto}
+    
+    # Función auxiliar para encontrar el representante de un elemento
+    def encontrar_representante(x):
+        if representantes[x] != x:
+            representantes[x] = encontrar_representante(representantes[x])
+        return representantes[x]
+    
+    # Función auxiliar para unir dos clases
+    def unir_clases(x, y):
+        rep_x = encontrar_representante(x)
+        rep_y = encontrar_representante(y)
+        if rep_x != rep_y:
+            representantes[rep_y] = rep_x  # Unir las clases
 
-    # Agrupar por clases de equivalencia
-    clases = []
-    visitados = set()
-    for elem in equivalencias:
-        if elem not in visitados:
-            clase = equivalencias[elem]
-            clases.append(clase)
-            visitados.update(clase)
+    # Unir los elementos relacionados
+    for (a, b) in relaciones:
+        unir_clases(a, b)
+    
+    # Agrupar los elementos en sus clases de equivalencia
+    clases = {}
+    for x in conjunto:
+        rep = encontrar_representante(x)
+        if rep not in clases:
+            clases[rep] = set()
+        clases[rep].add(x)
+    
+    # Mostrar las clases de equivalencia
+    contenido_clases = []
+    for idx, clase in enumerate(clases.values(), 1):
+        contenido_clases.append(f"Clase de equivalencia {idx}: {clase}")
+    imprimir_contenedor("Clases de Equivalencia", contenido_clases)
+    
+    # Mostrar las particiones
+    particiones = list(clases.values())
+    contenido_particiones = [f"Particiones: {particiones}"]
+    imprimir_contenedor("Particiones", contenido_particiones)
 
-    # Mostrar clases de equivalencia
-    contenido = []
-    for idx, clase in enumerate(clases, 1):
-        contenido.append(f"Clase de equivalencia {idx}: {clase}")
-    imprimir_contenedor("Clases de Equivalencia", contenido)
 
 # Función para verificar si una relación es retícula
 def es_reticula(conjunto, relaciones):
