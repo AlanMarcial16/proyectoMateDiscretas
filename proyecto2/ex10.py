@@ -154,6 +154,126 @@ def resaltar_nodo(nodo, color, letra):
                                 0.6, 0.8, color=color, ec="black", lw=2, zorder=3))
     ax.text(x, y, letra, color="white", fontsize=12, fontweight="bold", ha="center", va="center", zorder=4)
 
+
+def encontrar_camino_mas_corto():
+    """Abre una ventana para seleccionar nodos y encuentra el camino más corto."""
+    global conexiones, ax, canvas
+
+    if not conexiones:
+        messagebox.showinfo("Sin conexiones", "Por favor, agregue conexiones antes de encontrar el camino más corto.")
+        return
+
+    # Pedir nodo inicial y final
+    nodo_inicial = simpledialog.askstring("Nodo inicial", "Ingrese el nodo inicial (ej: A):")
+    nodo_final = simpledialog.askstring("Nodo final", "Ingrese el nodo final (ej: K):")
+
+    if not nodo_inicial or not nodo_final:
+        messagebox.showerror("Error", "Debe especificar ambos nodos.")
+        return
+
+    # Convertir letras a nodos
+    nodo_inicial_real = next((nodo for nodo, letra in nodos_letras.items() if letra == nodo_inicial), None)
+    nodo_final_real = next((nodo for nodo, letra in nodos_letras.items() if letra == nodo_final), None)
+
+    if not nodo_inicial_real or not nodo_final_real:
+        messagebox.showerror("Error", "Los nodos especificados no existen.")
+        return
+
+    # Implementar algoritmo de Dijkstra
+    grafo = construir_grafo()
+    peso_total, camino = dijkstra(grafo, nodo_inicial_real, nodo_final_real)
+
+    if camino is None:
+        messagebox.showinfo("Sin camino", f"No existe un camino entre {nodo_inicial} y {nodo_final}.")
+        return
+
+    # Mostrar resultados
+    messagebox.showinfo("Camino más corto", f"Peso total: {peso_total}\nRecorrido: {' -> '.join(camino)}")
+
+    # Resaltar camino en el gráfico
+    resaltar_camino(camino)
+
+
+def construir_grafo():
+    """Convierte las conexiones a un formato de grafo."""
+    grafo = {}
+    for nodo1, nodo2, peso in conexiones:
+        if nodo1 not in grafo:
+            grafo[nodo1] = []
+        if nodo2 not in grafo:
+            grafo[nodo2] = []
+        grafo[nodo1].append((nodo2, peso))
+        grafo[nodo2].append((nodo1, peso))  # Grafo no dirigido
+    return grafo
+
+
+def dijkstra(grafo, inicio, destino):
+    """Algoritmo de Dijkstra para encontrar el camino más corto."""
+    import heapq
+
+    distancias = {nodo: float("inf") for nodo in grafo}
+    distancias[inicio] = 0
+    prioridad = [(0, inicio)]
+    predecesores = {}
+
+    while prioridad:
+        distancia_actual, nodo_actual = heapq.heappop(prioridad)
+
+        if nodo_actual == destino:
+            camino = []
+            while nodo_actual:
+                camino.append(nodos_letras[nodo_actual])
+                nodo_actual = predecesores.get(nodo_actual)
+            return distancia_actual, camino[::-1]
+
+        if distancia_actual > distancias[nodo_actual]:
+            continue
+
+        for vecino, peso in grafo[nodo_actual]:
+            distancia = distancia_actual + peso
+            if distancia < distancias[vecino]:
+                distancias[vecino] = distancia
+                predecesores[vecino] = nodo_actual
+                heapq.heappush(prioridad, (distancia, vecino))
+
+    return float("inf"), None
+
+
+def resaltar_camino(camino):
+    """Resalta el camino más corto en el gráfico."""
+    global ax, canvas
+
+    # Atenuar todos los caminos
+    ax.lines = [linea for linea in ax.lines if not hasattr(linea, "color_original")]
+    for nodo1, nodo2, peso in conexiones:
+        fila1, col1 = map(int, nodo1.strip("N()").split(","))
+        fila2, col2 = map(int, nodo2.strip("N()").split(","))
+
+        x1, y1 = col1 + 0.5, mapa_filas - fila1 - 0.5
+        x2, y2 = col2 + 0.5, mapa_filas - fila2 - 0.5
+
+        linea, = ax.plot([x1, x2], [y1, y2], color="#cccccc", linestyle="--", lw=1)
+        linea.color_original = "gray"  # Guardar color original
+
+    # Resaltar el camino más corto
+    for i in range(len(camino) - 1):
+        nodo1 = next((nodo for nodo, letra in nodos_letras.items() if letra == camino[i]), None)
+        nodo2 = next((nodo for nodo, letra in nodos_letras.items() if letra == camino[i + 1]), None)
+
+        if nodo1 and nodo2:
+            fila1, col1 = map(int, nodo1.strip("N()").split(","))
+            fila2, col2 = map(int, nodo2.strip("N()").split(","))
+
+            x1, y1 = col1 + 0.5, mapa_filas - fila1 - 0.5
+            x2, y2 = col2 + 0.5, mapa_filas - fila2 - 0.5
+
+            ax.plot([x1, x2], [y1, y2], color="green", lw=2)
+
+    canvas.draw()
+
+
+
+
 # Crear la ventana principal
 root = tk.Tk()
 root.title("Generador de Mapa de Calles y Cuadras")
@@ -171,6 +291,9 @@ columnas_entry.pack(side=tk.LEFT, padx=5)
 
 tk.Button(frame_inputs, text="Generar Mapa", command=generar_mapa_cuadras).pack(side=tk.LEFT, padx=10)
 tk.Button(frame_inputs, text="Reiniciar", command=reiniciar).pack(side=tk.LEFT, padx=10)
+
+# Agregar el botón en la interfaz principal
+tk.Button(frame_inputs, text="Encontrar el camino más corto", command=encontrar_camino_mas_corto).pack(side=tk.LEFT, padx=10)
 
 frame_canvas = tk.Frame(root)
 frame_canvas.pack(fill=tk.BOTH, expand=1)
